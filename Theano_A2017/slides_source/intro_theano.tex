@@ -34,13 +34,13 @@
 \title[Intro to Theano]{Introduction to Theano}
 \subtitle{A Fast Python Library for Modelling and Training}
 \author[MILA]{%
-Pascal Lamblin\\
+Frédéric Bastien\\
 Institut des algorithmes d'apprentissage de Montréal\\
 Montreal Institute for Learning Algorithms\\
 Université de Montréal}
 
 \date{%
-September 14th, 2016, Montréal
+January 18th, 2017, Montréal
 }
 
 \setbeamertemplate{navigation symbols}{}
@@ -66,14 +66,14 @@ September 14th, 2016, Montréal
     \item Debugging in Theano, with exercises
   \end{itemize}
   All the material is online at
-  \url{github.com/lamblin/ccw_tutorial/Theano_A2016/}
+  \url{github.com/nouiz/ccw_tutorial/Theano_A2017/}
 
   \vspace{5mm}
   Next tutorials will be:
   \begin{itemize}
-    \item Sept. 21st -- \emph{Clusters}, by Mathieu Germain
-    \item Sept. 28th -- \emph{Advanced Theano}, by Arnaud Bergeron
-    \item Oct. 5th -- \emph{Scan: loops in Theano}, by Frédéric Bastien
+    \item Jan. 25st -- \emph{Clusters and SLURM}, by Mathieu Germain, Z-215
+    \item Feb. 1th -- \emph{Advanced Theano}, by Arnaud Bergeron, Z-215
+    \item Feb. 8th -- \emph{Scan: loops in Theano}, by Pascal Lamblin, Z-215
   \end{itemize}
 
 \end{frame}
@@ -113,7 +113,7 @@ September 14th, 2016, Montréal
 
 \begin{frame}[fragile]{Current status}
   \begin{itemize}
-    \item Mature: Theano has been developed and used since January 2008 (8 years old)
+    \item Mature: Theano has been developed and used since January 2008 (9 years old)
     \item Driven hundreds of research papers
     \item Good user documentation
     \item Active mailing list with participants worldwide
@@ -325,7 +325,7 @@ i(x_val, W_val, b_val)
       \begin{itemize}
         \item TensorType for NumPy ndarrays
         \item GpuArrayType for CUDA arrays (CudaNdarrayType in the old back-end)
-        \item Sparse for scipy.sparse matrices
+        \item SparseType for scipy.sparse matrices
       \end{itemize}
     \item ndim, dtype, broadcastable pattern are part of the type
     \item shape and memory layout (strides) are {\bf not}
@@ -598,17 +598,18 @@ cost_and_perform_updates = theano.function(
   \end{itemize}
   How does this work?
   \begin{itemize}
-    \item In Python, build a string representing the C code for a Python module
+  \item Two ways to specify the C code:
     \begin{itemize}
-      \item Stitching together code to extract data from Python structure,
-      \item Takes into account input and output types (ndim, dtype, \ldots)
-      \item String substitution for names of variables
+      \item In Python, build a string representing the C code for the op.
+      \item In Python, just reference a file that contain C code with a few special syntax
     \end{itemize}
+    \item The C code takes into account input and output types (ndim, dtype, \ldots)
     \item That module is compiled by \verb|g++|
     \item The compiled module gets imported in Python
     \item Versioned cache of generated and compiled C code
   \end{itemize}
-  For GPU code, same process, using CUDA and \verb|nvcc| instead.
+  For GPU code, same process while using the C driver API (new back-end) or
+  using CUDA and \verb|nvcc| for the old back-end.
 \end{frame}
 
 \begin{frame}[fragile]{The C virtual machine (CVM)}
@@ -653,24 +654,24 @@ cost_and_perform_updates = theano.function(
     \item By default, aliased to \verb|'float64'| for double precision on CPU
     \item Can be set to \verb|'float32'| by a configuration flag
     \item You can always explicitly use \verb|T.fmatrix()| or \verb|T.matrix(dtype='float32')|
-    \item Experimental support for \verb|'float16'| on some GPUs
+    \item Support for \verb|'float16'| storage for all GPUs. (not for computation yet)
   \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]{Configuration flags}
   Configuration flags can be set in a couple of ways:
   \begin{itemize}
-    \item \verb|THEANO_FLAGS=device=cuda0,floatX=float32| in the shell
+    \item \verb|THEANO_FLAGS=floatX=float32,device=cuda0| in the shell
     \item In Python:
       \begin{minted}{python}
-theano.config.device = 'cuda0'
 theano.config.floatX = 'float32'
+#theano.config.device = 'cuda0' don't work! Only some flag support it.
       \end{minted}
     \item In the \verb|.theanorc| configuration file:
       \begin{minted}{text}
 [global]
-device = cuda0
 floatX = float32
+device = cuda0
       \end{minted}
   \end{itemize}
 \end{frame}
@@ -693,7 +694,7 @@ floatX = float32
     \item Gradient through \verb|scan| implements backprop through time
     \item Can be transfered to GPU
   \end{itemize}
-  For more about \verb|scan|, see Fred's tutorial on Oct. 5th.
+  For more about \verb|scan|, see Pascal's tutorial on Feb. 8th.
 \end{frame}
 
 \begin{frame}[fragile]{Example: Loop with accumulation}
@@ -780,7 +781,7 @@ def numpy_dot(a, b):
   \end{itemize}
   New contributors wrote Caffe-style convolutions, using GEMM, on CPU and GPU that way.
 
-  For more about this, see Arnaud's tutorial on Sept. 28th.
+  For more about this, see Arnaud's tutorial on Feb. 1th.
 \end{frame}
 
 \subsection{New features}
@@ -790,12 +791,13 @@ def numpy_dot(a, b):
       \begin{itemize}
         \item Arrays of all dtypes, half-precision float (\verb|float16|) for storage
         \item Support for multiple GPUs in the same function
-        \item Experimental support for OpenCL
+%%        \item Experimental support for OpenCL
       \end{itemize}
     \item Performance improvements
       \begin{itemize}
         \item Better interface and implementations for convolution and transposed convolution
-        \item Integration of CuDNN (now v5) for 2D/3D convolutions and pooling
+        \item Integration of CuDNN (now v5.1) for 2D/3D convolutions, pooling RNNs and batch normalization
+
         \item CNMeM and a similar allocator
         \item Data-parallelism with Platoon (\url{github.com/mila-udem/platoon/})
       \end{itemize}
@@ -818,7 +820,6 @@ def numpy_dot(a, b):
 \begin{frame}[fragile]{What to expect in the near future}
   \begin{itemize}
     \item Better support for int operations on GPU (indexing, argmax)
-    \item More CuDNN operations (basic RNNs, batch normalization)
     \item Better support for 3D convolution / pooling
     \item Simpler, faster optimization mode
     \item Data-parallelism across nodes in Platoon
